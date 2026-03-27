@@ -1,0 +1,168 @@
+spring:
+  application:
+    name: job-hunt-agent
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/jobhunt
+    username: postgres
+    password: postgres
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: job-hunt-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer  # ← FIXED (was JsonDeserializer)
+      auto-offset-reset: earliest
+
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        model: llama3
+        options:
+          temperature: 0.1      # lower = more deterministic scoring
+          top-p: 1.0
+      embedding:
+        model: nomic-embed-text
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${GMAIL_USER:}
+    password: ${GMAIL_APP_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=30m
+
+# ─── App Config ───────────────────────────────────────────────────────────────
+app:
+  candidate:
+    name: "Sathishkumar K"
+    email: "sathishkumar9095027108@gmail.com"
+    phone: "+91 90950 27108"
+    location: "Bangalore, India"
+    current-ctc: "30 LPA"
+    expected-ctc: "38 LPA (Negotiable)"
+    notice-period: "Immediate Joiner"
+    linkedin: "linkedin.com/in/sathishkumar108"
+    github: "github.com/jacksathish108"
+    resume-path: "classpath:resume/sathishkumar_backend_resume_8.pdf"
+
+    # ── Fine-tuned profile for accurate matching ──────────────────────────
+    years-experience: 8
+    seniority-level: "Senior / Lead"
+    core-stack: "Java,Spring Boot,Apache Kafka,Spring AI,Redis,PostgreSQL,Docker"
+    strong-skills: "Microservices,Event-Driven Architecture,RAG Pipelines,CQRS,Saga,Resilience4j,JVM Tuning"
+    weak-skills: "Golang,Kubernetes,Istio,AWS,Azure,GCP,React,Angular"  # score DOWN if JD requires these heavily
+    preferred-titles: "Senior Backend Engineer,Lead Backend Engineer,Staff Engineer,Principal Engineer,Backend Architect"
+    disqualified-titles: "Frontend,Full Stack,DevOps,Data Engineer,ML Engineer,Android,iOS"  # auto-skip these
+
+  job-search:
+    keywords:
+      - "Senior Backend Engineer Java Kafka"
+      - "Lead Backend Engineer Spring Boot"
+      - "Backend Lead Microservices"
+      - "Spring AI Backend Engineer"
+    locations:
+      - "Bangalore"
+      - "Bengaluru"
+    min-match-score: 68         # raised from 65 — only strong matches
+    max-applications-per-day: 15
+    human-review-required: true
+
+    # ── Experience filters ────────────────────────────────────────────────
+    min-experience-years: 6     # skip JDs requiring < 6 years
+    max-experience-years: 14    # skip JDs requiring > 14 years (overqualified risk)
+    min-ctc-lpa: 32             # skip roles clearly below expectation
+    target-ctc-lpa: 38
+
+  scraper:
+    naukri:
+      base-url: "https://www.naukri.com"
+      enabled: false
+    linkedin:
+      enabled: false
+    indeed:
+      base-url: "https://in.indeed.com"
+      enabled: false
+    instahyre:
+      base-url: "https://www.instahyre.com"
+      enabled: false
+    scrape-interval-hours: 6
+
+  playwright:
+    headless: true
+    linkedin-email: ${LINKEDIN_EMAIL:}
+    linkedin-password: ${LINKEDIN_PASSWORD:}
+    naukri-email: ${NAUKRI_EMAIL:}
+    naukri-password: ${NAUKRI_PASSWORD:}
+
+  kafka:
+    topics:
+      job-discovered: "job.discovered"
+      job-analyzed: "job.analyzed"
+      resume-tailored: "resume.tailored"
+      application-submitted: "application.submitted"
+      follow-up-required: "followup.required"
+
+  pdf:
+    output-dir: "C:/tmp/resumes"   # Windows-friendly path
+
+# ─── Resilience4j ─────────────────────────────────────────────────────────────
+resilience4j:
+  circuitbreaker:
+    instances:
+      scraper:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+      ai-agent:
+        sliding-window-size: 5
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 60s
+  retry:
+    instances:
+      scraper:
+        max-attempts: 3
+        wait-duration: 2s
+      playwright:
+        max-attempts: 2
+        wait-duration: 5s
+
+logging:
+  level:
+    com.sathish: DEBUG
+    org.springframework.ai: INFO
+    org.springframework.kafka: WARN   # reduce Kafka noise in logs
