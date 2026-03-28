@@ -68,7 +68,7 @@ app:
     max-applications-per-day: 20
     human-review-required: true  # Set false for full automation
   candidate:
-    expected-ctc: "38 LPA (Negotiable)"
+    expected-ctc: "55 LPA (Negotiable)"
     notice-period: "Immediate Joiner"
 ```
 
@@ -186,7 +186,7 @@ Set `human-review-required: false` once you trust the agent.
 
 ## Tips for Sathish
 
-- **Instahyre** is the best source for 35L+ Bangalore roles — keep it enabled
+- **Instahyre** is the best source for 55L+ Bangalore roles — keep it enabled
 - The AI scores your profile vs JD — tune `min-match-score` based on hit rate
 - Your RAG pipeline + Spring AI experience is a strong differentiator — the tailor agent leads with it
 - LinkedIn Easy Apply works best with headless=false initially, to verify it's working
